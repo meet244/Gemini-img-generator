@@ -1,0 +1,420 @@
+/* Shimmer effect for loading state */
+.shimmer {
+    background: linear-gradient(
+        135deg,
+        rgba(200, 200, 200, 0.1) 0%,
+        rgba(200, 200, 200, 0.2) 50%,
+        rgba(200, 200, 200, 0.1) 100%
+    );
+    background-size: 200% 200%;
+    animation: shimmer 1.5s infinite;
+}
+
+.dark .shimmer {
+    background: linear-gradient(
+        135deg,
+        rgba(30, 30, 30, 0.5) 0%,
+        rgba(50, 50, 50, 0.8) 20%,
+        rgba(30, 30, 30, 0.5) 40%,
+        rgba(30, 30, 30, 0.5) 100%
+    );
+    background-size: 200% 200%;
+    animation: shimmer 2s infinite linear;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% -200%;
+    }
+    100% {
+        background-position: 200% 200%;
+    }
+}
+
+/* Make textarea resizable */
+textarea {
+    resize: none;
+    min-height: 60px;
+    overflow-y: hidden;
+}
+
+/* Hide shimmer when result is loaded */
+.result-box.loaded {
+    background: none;
+    animation: none;
+}
+
+/* Make result images preserve their natural aspect ratio */
+.result-box {
+    position: relative;
+    aspect-ratio: 1/1;
+}
+
+.result-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Dark mode toggle */
+.theme-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+}
+
+/* Transition for smooth theme switching */
+body, .container, input, textarea, button, .result-box {
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+/* Drag and drop styles */
+#drop-zone {
+    transition: all 0.2s ease;
+}
+
+#prompt.drag-active {
+    border-color: #4f46e5;
+}
+
+#drag-overlay {
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 15;
+}
+
+/* Prevent touch events from selecting text during drag on mobile */
+.dragging-active {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: copy;
+}
+
+/* Lightbox styles */
+#lightbox {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#lightbox.active {
+    opacity: 1;
+}
+
+#lightbox-img {
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+    max-width: 90vw;
+    max-height: 85vh;
+    object-fit: contain;
+}
+
+#lightbox.active #lightbox-img {
+    transform: scale(1);
+}
+
+/* Lightbox navigation buttons */
+#prev-image, #next-image, #close-lightbox {
+    opacity: 0.7;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#prev-image:hover, #next-image:hover, #close-lightbox:hover {
+    opacity: 1;
+}
+
+#prev-image:hover {
+    transform: translateY(-50%) translateX(-3px);
+}
+
+#next-image:hover {
+    transform: translateY(-50%) translateX(3px);
+}
+
+/* Multiple image preview styles */
+.image-preview-container {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    aspect-ratio: 1/1;
+}
+
+.image-preview-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.dark .image-preview-container img {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.remove-image-btn:hover {
+    background-color: rgba(220, 38, 38, 0.8);
+    transform: scale(1.1);
+}
+
+/* Responsive layout adjustments */
+@media (max-width: 1023px) {
+    #results {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .result-box {
+        min-height: 160px;
+    }
+}
+
+@media (min-width: 1024px) {
+    #results {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .result-box {
+        min-height: 220px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .result-box {
+        min-height: 250px;
+    }
+}
+
+/* Keep image previews compact on the left side */
+#images-container img {
+    max-height: 100px;
+}
+
+/* Fix for upload button positioning */
+#upload-image {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    padding: 4px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    border: none;
+    outline: none;
+}
+
+#upload-image svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2.2;
+}
+
+#upload-image:hover {
+    transform: scale(1.05);
+    background-color: rgba(255, 255, 255, 1);
+}
+
+.dark #upload-image {
+    background-color: rgba(50, 50, 50, 0.9);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.dark #upload-image:hover {
+    background-color: rgba(70, 70, 70, 1);
+}
+
+/* Make prompt field accommodate the upload button */
+#prompt {
+    padding-right: 40px !important; /* Ensure text doesn't go under the button */
+}
+
+/* Like button styles */
+.like-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 5;
+}
+
+.dark .like-btn {
+    background-color: rgba(30, 30, 30, 0.8);
+}
+
+.like-btn svg {
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: #888;
+    stroke-width: 2;
+}
+
+.like-btn.liked svg {
+    fill: #f87171;
+    stroke: #f87171;
+}
+
+.like-btn:hover {
+    transform: scale(1.1);
+}
+
+/* History and liked image item styles */
+.history-item, .liked-item {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.history-item:hover, .liked-item:hover {
+    transform: scale(1.02);
+}
+
+.history-item img, .liked-item img {
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+}
+
+/* Tab styles */
+.tab-button {
+    position: relative;
+}
+
+.tab-content {
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Prevent text from overflowing in input fields */
+input[type="password"], 
+input[type="text"] {
+    text-overflow: ellipsis;
+}
+
+/* Splash screen styles */
+#splash-screen {
+    background-color: #1e1e2e;
+    transition: opacity 0.5s ease;
+    z-index: 9999;
+    opacity: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.splash-left, .splash-right {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    background-color: #4f46e5;
+    transition: transform 0.8s ease;
+    z-index: 5;
+}
+
+.splash-left {
+    left: 0;
+    top: 0;
+}
+
+.splash-right {
+    right: 0;
+    top: 0;
+}
+
+.splash-content {
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    z-index: 20;
+    position: relative;
+    text-align: center;
+    max-width: 80%;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    animation: fadeIn 0.8s ease-in;
+}
+
+.splash-content h1 {
+    transform: translateY(0);
+    animation: slideUp 0.6s ease-out;
+}
+
+.splash-content p {
+    opacity: 0;
+    animation: fadeIn 0.8s ease-in forwards;
+    animation-delay: 0.3s;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Split animation states */
+#splash-screen.split .splash-left {
+    transform: translateX(-100%);
+}
+
+#splash-screen.split .splash-right {
+    transform: translateX(100%);
+}
+
+#splash-screen.split .splash-content {
+    opacity: 0;
+}
+
+#splash-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Main content reveal */
+#main-content {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+#main-content.visible {
+    opacity: 1;
+    pointer-events: auto;
+} 

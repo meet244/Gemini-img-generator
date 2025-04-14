@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle splash screen animation
+    // Handle splash screen - show without animations
     const splashScreen = document.getElementById('splash-screen');
     const mainContent = document.getElementById('main-content');
     const splashContent = document.querySelector('.splash-content');
@@ -12,15 +12,11 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     `;
     
-    // Show splash screen for 1.5 seconds before fading out
+    // Show splash screen for 1.5 seconds before hiding it immediately (no animations)
     setTimeout(() => {
-        splashScreen.classList.add('split');
-        
-        // After split animation, hide splash and show main content
-        setTimeout(() => {
-            splashScreen.classList.add('hidden');
-            mainContent.classList.add('visible');
-        }, 800);
+        // Hide splash and show main content immediately without animations
+        splashScreen.classList.add('hidden');
+        mainContent.classList.add('visible');
     }, 1500);
     
     // DOM Elements
@@ -38,6 +34,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const darkIcon = document.getElementById('dark-icon');
     const dropZone = document.getElementById('drop-zone');
     const dragOverlay = document.getElementById('drag-overlay');
+    
+    // Image count elements
+    const imageCountInput = document.getElementById('image-count');
+    const decreaseCountBtn = document.getElementById('decrease-count');
+    const increaseCountBtn = document.getElementById('increase-count');
     
     // Lightbox elements
     const lightbox = document.getElementById('lightbox');
@@ -72,8 +73,27 @@ document.addEventListener('DOMContentLoaded', function() {
             promptTextarea.style.height = (promptTextarea.scrollHeight) + 'px';
         }
         
-        // Don't load images from localStorage anymore
-        imageDataArray = [];
+        // Load image count
+        const savedImageCount = localStorage.getItem('gemini_image_count');
+        if (savedImageCount) {
+            imageCountInput.value = savedImageCount;
+            // Update result boxes to match saved count
+            updateResultBoxesCount(savedImageCount);
+        }
+        
+        // Load saved uploaded images
+        try {
+            const savedImages = localStorage.getItem('gemini_uploaded_images');
+            if (savedImages) {
+                imageDataArray = JSON.parse(savedImages);
+                updateImagePreviews();
+            }
+        } catch (error) {
+            console.error('Error loading saved images:', error);
+            // Clear potentially corrupted data
+            localStorage.removeItem('gemini_uploaded_images');
+            imageDataArray = [];
+        }
     }
 
     // Save values to localStorage
@@ -84,8 +104,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Save prompt
         localStorage.setItem('gemini_prompt', promptTextarea.value);
         
-        // Don't save images to localStorage anymore
-        localStorage.removeItem('gemini_images');
+        // Save image count
+        localStorage.setItem('gemini_image_count', imageCountInput.value);
+        
+        // Save uploaded images
+        try {
+            if (imageDataArray.length > 0) {
+                const imagesString = JSON.stringify(imageDataArray);
+                // Check if we're within localStorage size limits (typically ~5MB)
+                if (imagesString.length < 2 * 1024 * 1024) { // Stay under 2MB to be safe
+                    localStorage.setItem('gemini_uploaded_images', imagesString);
+                } else {
+                    console.warn('Uploaded images too large for localStorage, not saving images');
+                }
+            } else {
+                // If no images, clear the storage
+                localStorage.removeItem('gemini_uploaded_images');
+            }
+        } catch (error) {
+            console.error('Error saving images to localStorage:', error);
+        }
     }
 
     // Function to load image history and liked images from localStorage
@@ -229,17 +267,22 @@ document.addEventListener('DOMContentLoaded', function() {
             img.src = 'data:image/png;base64,' + item.data;
             img.alt = 'Generated image';
             
+            // Add download button
+            const downloadButton = createDownloadButton(item.data);
+            
             // Add like button
             const likeButton = createLikeButton(item.data, item.timestamp);
             
             // Add click handler for fullscreen view
             imageItem.addEventListener('click', function(e) {
-                if (e.target !== likeButton && !likeButton.contains(e.target)) {
+                if (e.target !== likeButton && !likeButton.contains(e.target) && 
+                   e.target !== downloadButton && !downloadButton.contains(e.target)) {
                     openHistoryLightbox(index);
                 }
             });
             
             imageItem.appendChild(img);
+            imageItem.appendChild(downloadButton);
             imageItem.appendChild(likeButton);
             historyContainer.appendChild(imageItem);
         });
@@ -267,17 +310,22 @@ document.addEventListener('DOMContentLoaded', function() {
             img.src = 'data:image/png;base64,' + item.data;
             img.alt = 'Liked image';
             
+            // Add download button
+            const downloadButton = createDownloadButton(item.data);
+            
             // Add like button (always in liked state)
             const likeButton = createLikeButton(item.data, item.timestamp, true);
             
             // Add click handler for fullscreen view
             imageItem.addEventListener('click', function(e) {
-                if (e.target !== likeButton && !likeButton.contains(e.target)) {
+                if (e.target !== likeButton && !likeButton.contains(e.target) && 
+                   e.target !== downloadButton && !downloadButton.contains(e.target)) {
                     openLikedLightbox(index);
                 }
             });
             
             imageItem.appendChild(img);
+            imageItem.appendChild(downloadButton);
             imageItem.appendChild(likeButton);
             likedContainer.appendChild(imageItem);
         });
@@ -449,16 +497,33 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // NEW FUNCTION: Generate a single image with retry logic
-    async function generateSingleImage(apiKey, prompt, imageData, retryCount = 0, maxRetries = 3) {
+    async function generateSingleImage(apiKey, prompt, imageDataArray, retryCount = 0, maxRetries = 3) {
         const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent";
         
         const parts = [{"text": prompt}];
         
-        // Add image if provided
-        if (imageData) {
+        // Add all images if provided
+        if (Array.isArray(imageDataArray) && imageDataArray.length > 0) {
+            // Add each image in the array to the parts
+            for (const imageData of imageDataArray) {
+                if (imageData) {
+                    // Extract mime type and data
+                    const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
+                    const imageContent = imageData.split(',')[1];
+                    parts.push({
+                        "inline_data": {
+                            "mime_type": mimeType,
+                            "data": imageContent
+                        }
+                    });
+                }
+            }
+        } 
+        // Handle the case where a single image is passed directly
+        else if (imageDataArray) {
             // Extract mime type and data
-            const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
-            const imageContent = imageData.split(',')[1];
+            const mimeType = imageDataArray.split(',')[0].split(':')[1].split(';')[0];
+            const imageContent = imageDataArray.split(',')[1];
             parts.push({
                 "inline_data": {
                     "mime_type": mimeType,
@@ -510,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch (e) {
                     console.error("Error parsing response:", e);
                     if (retryCount < maxRetries) {
-                        return generateSingleImage(apiKey, prompt, imageData, retryCount + 1, maxRetries);
+                        return generateSingleImage(apiKey, prompt, imageDataArray, retryCount + 1, maxRetries);
                     }
                     
                     // If we've exhausted all retries, return the specific error
@@ -526,21 +591,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 await new Promise(resolve => setTimeout(resolve, backoffTime * 1000));
                 
                 if (retryCount < maxRetries) {
-                    return generateSingleImage(apiKey, prompt, imageData, retryCount + 1, maxRetries);
+                    return generateSingleImage(apiKey, prompt, imageDataArray, retryCount + 1, maxRetries);
                 }
             } else {
                 // Other API error
                 console.error(`API error (${response.status}):`, await response.text());
                 if (retryCount < maxRetries) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
-                    return generateSingleImage(apiKey, prompt, imageData, retryCount + 1, maxRetries);
+                    return generateSingleImage(apiKey, prompt, imageDataArray, retryCount + 1, maxRetries);
                 }
             }
         } catch (e) {
             console.error("Request error:", e);
             if (retryCount < maxRetries) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                return generateSingleImage(apiKey, prompt, imageData, retryCount + 1, maxRetries);
+                return generateSingleImage(apiKey, prompt, imageDataArray, retryCount + 1, maxRetries);
             }
         }
         
@@ -552,22 +617,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // NEW FUNCTION: Generate multiple images in parallel
-    async function generateImages(apiKey, prompt, imageData, count = 4) {
+    async function generateImages(apiKey, prompt, imageDataArray, count = 4, boxElements = null) {
         // Reset generated images array
         generatedImages = [];
         
+        // Get the result boxes to use
+        const imageBoxes = boxElements || document.querySelectorAll('.result-box');
+        
+        // Make sure we're only operating on the boxes we have
+        count = Math.min(count, imageBoxes.length);
+        
         // Reset result boxes and show shimmer
-        resultBoxes.forEach(box => {
-            box.innerHTML = '';
-            box.classList.remove('loaded');
-            box.classList.add('shimmer');
+        for (let i = 0; i < count; i++) {
+            imageBoxes[i].innerHTML = '';
+            imageBoxes[i].classList.remove('loaded');
+            imageBoxes[i].classList.add('shimmer');
             
             // Add loading indicator
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'absolute inset-0 flex items-center justify-center';
             loadingDiv.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>';
-            box.appendChild(loadingDiv);
-        });
+            imageBoxes[i].appendChild(loadingDiv);
+        }
         
         // Create array to track individual image completion
         const completedImages = new Array(count).fill(false);
@@ -576,8 +647,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const processImage = (result, index) => {
             completedImages[index] = true;
             
-            if (index < resultBoxes.length) {
-                resultBoxes[index].classList.remove('shimmer');
+            if (index < count) {
+                imageBoxes[index].classList.remove('shimmer');
                 
                 if (result.success) {
                     // Store image data
@@ -597,12 +668,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Handle image load events
                     img.onload = function() {
                         // Add loaded class
-                        resultBoxes[index].classList.add('loaded');
+                        imageBoxes[index].classList.add('loaded');
                     };
                     
                     img.onerror = function() {
                         console.error(`Error loading image ${index}`);
-                        resultBoxes[index].innerHTML = '<div class="flex items-center justify-center h-full text-red-500">Image failed to load</div>';
+                        imageBoxes[index].innerHTML = '<div class="flex items-center justify-center h-full text-red-500">Image failed to load</div>';
                     };
                     
                     // Add click handler for fullscreen view
@@ -611,12 +682,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     // Clear the box and append the image
-                    resultBoxes[index].innerHTML = '';
-                    resultBoxes[index].appendChild(img);
+                    imageBoxes[index].innerHTML = '';
+                    imageBoxes[index].appendChild(img);
+                    
+                    // Add download button to each generated image
+                    const downloadButton = createDownloadButton(result.data);
+                    imageBoxes[index].appendChild(downloadButton);
                     
                     // Add like button to each generated image
                     const likeButton = createLikeButton(result.data);
-                    resultBoxes[index].appendChild(likeButton);
+                    imageBoxes[index].appendChild(likeButton);
                 } else {
                     // Display error message for failed image
                     const errorDiv = document.createElement('div');
@@ -643,8 +718,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     errorDiv.appendChild(errorIcon);
                     errorDiv.appendChild(errorText);
                     
-                    resultBoxes[index].innerHTML = '';
-                    resultBoxes[index].appendChild(errorDiv);
+                    imageBoxes[index].innerHTML = '';
+                    imageBoxes[index].appendChild(errorDiv);
                 }
             }
             
@@ -657,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate each image independently with its own promise
         for (let i = 0; i < count; i++) {
             const index = i;
-            generateSingleImage(apiKey, prompt, imageData)
+            generateSingleImage(apiKey, prompt, imageDataArray)
                 .then(result => {
                     processImage(result, index);
                 })
@@ -680,10 +755,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Send button click handler - updated for direct API calls
+    // Send button click handler - updated for dynamic image count
     sendButton.addEventListener('click', async function() {
         const apiKey = apiKeyInput.value.trim();
         const prompt = promptTextarea.value.trim();
+        const imageCount = parseInt(imageCountInput.value);
         
         if (!apiKey) {
             alert('Please enter your Gemini API key');
@@ -702,12 +778,15 @@ document.addEventListener('DOMContentLoaded', function() {
         sendButton.disabled = true;
         sendButton.textContent = 'Generating...';
         
-        // Get the first image for now
-        const imageToSend = imageDataArray.length > 0 ? imageDataArray[0] : null;
+        // Pass all uploaded images, not just the first one
+        const imagesToSend = imageDataArray.length > 0 ? imageDataArray : null;
         
         try {
+            // Make sure we have enough result boxes and get the updated NodeList
+            const updatedBoxes = updateResultBoxesCount(imageCount);
+            
             // Generate images - each will display as it completes
-            await generateImages(apiKey, prompt, imageToSend);
+            await generateImages(apiKey, prompt, imagesToSend, imageCount, updatedBoxes);
         } catch (error) {
             console.error('Error:', error);
             
@@ -828,26 +907,101 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle paste from clipboard (Ctrl+V)
     document.addEventListener('paste', function(e) {
-        if (document.activeElement === promptTextarea) {
-            const items = e.clipboardData.items;
-            
+        // Check if we're actively editing the prompt textarea or API key field
+        const activeElement = document.activeElement;
+        const isPromptFocused = activeElement === promptTextarea;
+        const isApiKeyFocused = activeElement === apiKeyInput;
+        
+        // If we're in the API key field, let the default paste behavior happen
+        if (isApiKeyFocused) {
+            return;
+        }
+        
+        // Get clipboard content
+        const items = e.clipboardData.items;
+        let hasHandledContent = false;
+        
+        // First check for images in clipboard
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                handleImageFile(file);
+                hasHandledContent = true;
+                
+                // If we're not directly focused in the textarea, prevent default
+                // to avoid pasting image data as text
+                if (!isPromptFocused) {
+                    e.preventDefault();
+                }
+                break;
+            }
+        }
+        
+        // Then check for text content if no image was found and tab has focus
+        if (!hasHandledContent && !isPromptFocused && document.hasFocus()) {
+            // Check for text content
             for (let i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('image') !== -1) {
-                    const file = items[i].getAsFile();
-                    handleImageFile(file);
+                if (items[i].type === 'text/plain') {
+                    items[i].getAsString(function(text) {
+                        if (text.trim()) {
+                            // Focus the textarea and set its value to the pasted text
+                            promptTextarea.focus();
+                            promptTextarea.value = text;
+                            
+                            // Trigger the input event to resize the textarea
+                            promptTextarea.dispatchEvent(new Event('input'));
+                            
+                            // Save the new prompt value
+                            saveValues();
+                        }
+                    });
+                    e.preventDefault();
                     break;
                 }
             }
         }
     });
 
-    // Drag and drop functionality
+    // Remove previous drag and drop event listeners from dropZone
+    dropZone.removeEventListener('dragenter', handleDragEnter);
+    dropZone.removeEventListener('dragleave', handleDragLeave);
+    dropZone.removeEventListener('dragover', handleDragOver);
+    dropZone.removeEventListener('drop', handleDrop);
+
+    // Remove drag and drop event listeners from textarea
+    promptTextarea.removeEventListener('dragenter', handleDragEnter);
+    promptTextarea.removeEventListener('dragleave', handleDragLeave);
+    promptTextarea.removeEventListener('dragover', handleDragOver);
+    promptTextarea.removeEventListener('drop', handleDrop);
+
+    // Get the left column container
+    const leftColumn = document.querySelector('.lg\\:w-1\\/3');
+    
+    // Add drag and drop event listeners to the entire left column
+    leftColumn.addEventListener('dragenter', handleDragEnter);
+    leftColumn.addEventListener('dragleave', handleDragLeave);
+    leftColumn.addEventListener('dragover', handleDragOver);
+    leftColumn.addEventListener('drop', handleDrop);
+
+    // Update drag indicator to cover the entire left column
     function handleDragEnter(e) {
         e.preventDefault();
         e.stopPropagation();
         dragCounter++;
-        promptTextarea.classList.add('drag-active');
-        dragOverlay.classList.remove('hidden');
+        leftColumn.classList.add('drag-active');
+        
+        // Show overlay over the entire left column
+        if (!document.getElementById('left-column-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'left-column-overlay';
+            overlay.className = 'absolute inset-0 bg-indigo-100 dark:bg-indigo-900 bg-opacity-70 dark:bg-opacity-70 rounded-md border-2 border-dashed border-indigo-500 flex items-center justify-center z-10';
+            overlay.innerHTML = '<div class="text-indigo-600 dark:text-indigo-300 text-lg font-medium">Drop image here</div>';
+            
+            // Apply absolute positioning relative to the left column
+            leftColumn.style.position = 'relative';
+            leftColumn.appendChild(overlay);
+        }
+        
         document.body.classList.add('dragging-active');
     }
 
@@ -856,8 +1010,14 @@ document.addEventListener('DOMContentLoaded', function() {
         e.stopPropagation();
         dragCounter--;
         if (dragCounter === 0) {
-            promptTextarea.classList.remove('drag-active');
-            dragOverlay.classList.add('hidden');
+            leftColumn.classList.remove('drag-active');
+            
+            // Remove the overlay
+            const overlay = document.getElementById('left-column-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+            
             document.body.classList.remove('dragging-active');
         }
     }
@@ -870,8 +1030,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleDrop(e) {
         e.preventDefault();
         e.stopPropagation();
-        promptTextarea.classList.remove('drag-active');
-        dragOverlay.classList.add('hidden');
+        leftColumn.classList.remove('drag-active');
+        
+        // Remove the overlay
+        const overlay = document.getElementById('left-column-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        
         document.body.classList.remove('dragging-active');
         dragCounter = 0;
         
@@ -883,18 +1049,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-
-    // Remove previous drag and drop event listeners from dropZone
-    dropZone.removeEventListener('dragenter', handleDragEnter);
-    dropZone.removeEventListener('dragleave', handleDragLeave);
-    dropZone.removeEventListener('dragover', handleDragOver);
-    dropZone.removeEventListener('drop', handleDrop);
-
-    // Add drag and drop event listeners only to the textarea
-    promptTextarea.addEventListener('dragenter', handleDragEnter);
-    promptTextarea.addEventListener('dragleave', handleDragLeave);
-    promptTextarea.addEventListener('dragover', handleDragOver);
-    promptTextarea.addEventListener('drop', handleDrop);
 
     // Function to handle an image file
     function handleImageFile(file) {
@@ -920,6 +1074,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const container = document.createElement('div');
             container.className = 'image-preview-container';
             
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = 'img-wrapper';
+            imgWrapper.style.width = '100%';
+            imgWrapper.style.height = '100%';
+            imgWrapper.style.display = 'flex';
+            imgWrapper.style.alignItems = 'center';
+            imgWrapper.style.justifyContent = 'center';
+            
             const img = document.createElement('img');
             img.src = imageData;
             img.alt = `Image ${index + 1}`;
@@ -936,7 +1098,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 removeImage(index);
             });
             
-            container.appendChild(img);
+            imgWrapper.appendChild(img);
+            container.appendChild(imgWrapper);
             container.appendChild(removeBtn);
             imagesContainer.appendChild(container);
         });
@@ -954,4 +1117,117 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize with the generate tab active
     switchTab('generate');
+
+    // Image count control functionality
+    decreaseCountBtn.addEventListener('click', function() {
+        let currentValue = parseInt(imageCountInput.value);
+        if (currentValue > parseInt(imageCountInput.min)) {
+            imageCountInput.value = currentValue - 1;
+            // Save the count value
+            localStorage.setItem('gemini_image_count', imageCountInput.value);
+            // Adjust the result boxes if needed
+            updateResultBoxesCount(imageCountInput.value);
+        }
+    });
+    
+    increaseCountBtn.addEventListener('click', function() {
+        let currentValue = parseInt(imageCountInput.value);
+        if (currentValue < parseInt(imageCountInput.max)) {
+            imageCountInput.value = currentValue + 1;
+            // Save the count value
+            localStorage.setItem('gemini_image_count', imageCountInput.value);
+            // Adjust the result boxes if needed
+            updateResultBoxesCount(imageCountInput.value);
+        }
+    });
+    
+    imageCountInput.addEventListener('change', function() {
+        // Ensure value is within bounds
+        let value = parseInt(imageCountInput.value);
+        const min = parseInt(imageCountInput.min);
+        const max = parseInt(imageCountInput.max);
+        
+        if (isNaN(value) || value < min) {
+            imageCountInput.value = min;
+            value = min;
+        } else if (value > max) {
+            imageCountInput.value = max;
+            value = max;
+        }
+        
+        // Save the count value
+        localStorage.setItem('gemini_image_count', value);
+        
+        // Adjust the result boxes if needed
+        updateResultBoxesCount(value);
+    });
+    
+    // Function to update the number of result boxes based on the image count
+    function updateResultBoxesCount(count) {
+        count = parseInt(count);
+        
+        // Get current result boxes
+        const currentBoxes = Array.from(resultsContainer.querySelectorAll('.result-box'));
+        const currentCount = currentBoxes.length;
+        
+        if (count > currentCount) {
+            // Add more boxes
+            for (let i = currentCount; i < count; i++) {
+                const newBox = document.createElement('div');
+                newBox.className = 'result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]';
+                resultsContainer.appendChild(newBox);
+            }
+        } else if (count < currentCount) {
+            // Remove extra boxes
+            for (let i = currentCount - 1; i >= count; i--) {
+                if (currentBoxes[i]) {
+                    currentBoxes[i].remove();
+                }
+            }
+        }
+        
+        // Update the grid layout class based on count
+        resultsContainer.className = resultsContainer.className.replace(/\sitems-\d+/g, '');
+        resultsContainer.classList.add(`items-${count}`);
+        
+        // Return the updated NodeList of result boxes
+        return document.querySelectorAll('#results .result-box');
+    }
+
+    // Create a download button for an image
+    function createDownloadButton(imageData) {
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'download-btn';
+        downloadBtn.title = 'Download image';
+        
+        downloadBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        `;
+        
+        downloadBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            downloadImage(imageData);
+        });
+        
+        return downloadBtn;
+    }
+    
+    // Function to download an image
+    function downloadImage(imageData) {
+        // Create a temporary anchor element
+        const a = document.createElement('a');
+        
+        // Set the download attribute with a filename
+        a.download = `gemini-image-${new Date().getTime()}.png`;
+        
+        // Set the href to the image data
+        a.href = 'data:image/png;base64,' + imageData;
+        
+        // Append to the body, click, and remove
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
 }); 

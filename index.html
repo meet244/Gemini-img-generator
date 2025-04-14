@@ -20,10 +20,8 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col items-center py-8 px-4 transition-colors">
-    <!-- Splash Screen -->
+    <!-- Splash Screen - No Animations -->
     <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center">
-        <div class="splash-left"></div>
-        <div class="splash-right"></div>
         <div class="splash-content">
             <!-- Content will be added dynamically by JavaScript -->
         </div>
@@ -87,19 +85,38 @@
                     </div>
                     
                     <!-- Multiple Image Previews -->
-                    <div id="images-container" class="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div id="images-container" class="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
                         <!-- Image previews will be added here dynamically -->
                     </div>
                     
                     <!-- Send Button -->
-                    <div class="flex justify-center">
-                        <button id="send-button" class="w-full px-6 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <div class="flex justify-center mb-4">
+                        <!-- Image Count Selector -->
+                        <div class="flex items-center mr-4">
+                            <label for="image-count" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Images:</label>
+                            <div class="relative flex items-center">
+                                <button id="decrease-count" class="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                    </svg>
+                                </button>
+                                <input type="number" id="image-count" min="1" max="10" value="4" 
+                                    class="w-12 px-2 py-1 text-center border-t border-b border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
+                                    aria-label="Number of images to generate">
+                                <button id="increase-count" class="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <button id="send-button" class="flex-1 px-6 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                             Generate Images
                         </button>
                     </div>
                     
                     <!-- Shortcut Info -->
-                    <div class="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 text-center">
                         Press <kbd class="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl</kbd> + <kbd class="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Enter</kbd> to generate images
                     </div>
                 </div>
@@ -132,7 +149,7 @@
                     <div id="generate-content" class="tab-content block">
                         
                         <!-- Results Container -->
-                        <div id="results" class="grid grid-cols-2 gap-4">
+                        <div id="results" class="grid grid-cols-2 gap-4 items-4">
                             <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]"></div>
                             <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]"></div>
                             <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]"></div>

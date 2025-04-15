@@ -237,6 +237,11 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
         selectedTab.setAttribute('aria-selected', 'true');
         
+        // Close any open lightbox when switching tabs to prevent context confusion
+        if (lightbox && !lightbox.classList.contains('hidden')) {
+            closeLightbox();
+        }
+        
         // Load content for specific tabs
         if (tabId === 'history') {
             displayImageHistory();
@@ -261,6 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
         generatedImagesHistory.forEach((item, index) => {
             const imageItem = document.createElement('div');
             imageItem.className = 'history-item';
+            imageItem.dataset.historyIndex = index; // Store the index for reference
             
             // Create image
             const img = document.createElement('img');
@@ -304,6 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
         likedImages.forEach((item, index) => {
             const imageItem = document.createElement('div');
             imageItem.className = 'liked-item';
+            imageItem.dataset.likedIndex = index; // Store the index for reference
             
             // Create image
             const img = document.createElement('img');
@@ -383,21 +390,50 @@ document.addEventListener('DOMContentLoaded', function() {
     function openHistoryLightbox(startIndex) {
         if (generatedImagesHistory.length === 0) return;
         
-        const historySources = generatedImagesHistory.map(item => item.data);
-        openCustomLightbox(historySources, startIndex);
+        // Check if we're actually on the history tab before opening
+        if (document.getElementById('history-tab').getAttribute('aria-selected') !== 'true') {
+            // If not on history tab, switch to it first
+            switchTab('history');
+            // Small delay to ensure tab content is displayed
+            setTimeout(() => {
+                const historySources = generatedImagesHistory.map(item => item.data);
+                openCustomLightbox(historySources, startIndex);
+            }, 50);
+        } else {
+            const historySources = generatedImagesHistory.map(item => item.data);
+            openCustomLightbox(historySources, startIndex);
+        }
     }
 
     // Open lightbox for liked images
     function openLikedLightbox(startIndex) {
         if (likedImages.length === 0) return;
         
-        const likedSources = likedImages.map(item => item.data);
-        openCustomLightbox(likedSources, startIndex);
+        // Check if we're actually on the liked tab before opening
+        if (document.getElementById('liked-tab').getAttribute('aria-selected') !== 'true') {
+            // If not on liked tab, switch to it first
+            switchTab('liked');
+            // Small delay to ensure tab content is displayed
+            setTimeout(() => {
+                const likedSources = likedImages.map(item => item.data);
+                openCustomLightbox(likedSources, startIndex);
+            }, 50);
+        } else {
+            const likedSources = likedImages.map(item => item.data);
+            openCustomLightbox(likedSources, startIndex);
+        }
     }
 
     // Open custom lightbox with specified image list and index
     function openCustomLightbox(imageSources, startIndex) {
         currentImageIndex = startIndex;
+        
+        // Store the active tab that was used to open the lightbox
+        const activeTab = document.querySelector('[role="tab"][aria-selected="true"]').id.replace('-tab', '');
+        lightbox.setAttribute('data-source-tab', activeTab);
+        
+        // Store the specific image sources for this lightbox session
+        lightbox._imageSources = imageSources;
         generatedImages = imageSources; // Reuse the existing lightbox with our custom images
         
         // Show lightbox
@@ -420,6 +456,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function openLightbox(imageIndex) {
         if (generatedImages.length === 0) return;
         
+        // Store the active tab that was used to open the lightbox (always 'generate' in this case)
+        lightbox.setAttribute('data-source-tab', 'generate');
+        
+        // Store the specific image sources for this lightbox session
+        lightbox._imageSources = [...generatedImages];
+        
         currentImageIndex = imageIndex;
         updateLightboxImage();
         
@@ -439,8 +481,43 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeLightbox() {
         // Hide with animation
         lightbox.classList.remove('active');
+        
+        // Get the source tab before we close
+        const sourceTab = lightbox.getAttribute('data-source-tab') || 'generate';
+        
         setTimeout(() => {
             lightbox.classList.add('hidden');
+            
+            // Clear the source tab attribute and stored images when closing
+            lightbox.removeAttribute('data-source-tab');
+            delete lightbox._imageSources;
+            
+            // Reset generatedImages if we're closing from a non-generate tab
+            if (sourceTab !== 'generate') {
+                // We need to make sure the generate tab's images are restored
+                // if the user goes back to that tab
+                if (document.getElementById('generate-tab').getAttribute('aria-selected') === 'true') {
+                    // If we're already on the generate tab, make sure its images are loaded
+                    // We need to reload any generated images by checking the result boxes
+                    const resultBoxes = document.querySelectorAll('.result-box');
+                    const tempImages = [];
+                    
+                    resultBoxes.forEach(box => {
+                        const img = box.querySelector('img');
+                        if (img && img.src) {
+                            // Extract base64 data from the image src
+                            const base64Data = img.src.split(',')[1];
+                            if (base64Data) {
+                                tempImages.push(base64Data);
+                            }
+                        }
+                    });
+                    
+                    if (tempImages.length > 0) {
+                        generatedImages = tempImages;
+                    }
+                }
+            }
         }, 300);
         
         // Re-enable scrolling
@@ -448,21 +525,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateLightboxImage() {
-        lightboxImg.src = 'data:image/png;base64,' + generatedImages[currentImageIndex];
+        // Use the stored image sources if available, otherwise fall back to generatedImages
+        const images = lightbox._imageSources || generatedImages;
+        if (images && images.length > currentImageIndex) {
+            lightboxImg.src = 'data:image/png;base64,' + images[currentImageIndex];
+        }
     }
     
     function updateCounter() {
-        lightboxCounter.textContent = `${currentImageIndex + 1} / ${generatedImages.length}`;
+        // Use the stored image sources if available, otherwise fall back to generatedImages
+        const images = lightbox._imageSources || generatedImages;
+        lightboxCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
     }
     
     function nextLightboxImage() {
-        currentImageIndex = (currentImageIndex + 1) % generatedImages.length;
+        // Use the stored image sources if available, otherwise fall back to generatedImages
+        const images = lightbox._imageSources || generatedImages;
+        currentImageIndex = (currentImageIndex + 1) % images.length;
         updateLightboxImage();
         updateCounter();
     }
     
     function prevLightboxImage() {
-        currentImageIndex = (currentImageIndex - 1 + generatedImages.length) % generatedImages.length;
+        // Use the stored image sources if available, otherwise fall back to generatedImages
+        const images = lightbox._imageSources || generatedImages;
+        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
         updateLightboxImage();
         updateCounter();
     }
@@ -616,143 +703,201 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // NEW FUNCTION: Generate multiple images in parallel
+    // Function to process an individual image result and display it in a result box
+    function processImage(result, index) {
+        // Find the result box by index
+        const resultBox = document.querySelectorAll('.result-box')[index];
+        if (!resultBox) return;
+        
+        // Clear the box
+        resultBox.innerHTML = '';
+        resultBox.classList.remove('shimmer');
+        resultBox.dataset.imageIndex = index.toString();
+        
+        // The image is from response.data, which is already base64
+        const imageData = result.data;
+        
+        // Create image element
+        const img = document.createElement('img');
+        img.src = 'data:image/png;base64,' + imageData;
+        img.alt = 'Generated image';
+        img.className = 'w-full h-full object-cover';
+        
+        // Create overlay with buttons
+        const overlay = document.createElement('div');
+        overlay.className = 'image-overlay';
+        
+        // Create like button
+        const likeButton = document.createElement('button');
+        likeButton.className = 'action-btn like-btn' + (isImageLiked(imageData) ? ' liked' : '');
+        likeButton.title = 'Like this image';
+        likeButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+        `;
+        
+        // Create download button
+        const downloadButton = document.createElement('button');
+        downloadButton.className = 'action-btn download-btn';
+        downloadButton.title = 'Download this image';
+        downloadButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        `;
+        
+        // Add event listeners to buttons
+        likeButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isNowLiked = toggleLike(imageData, new Date().toISOString());
+            if (isNowLiked) {
+                likeButton.classList.add('liked');
+            } else {
+                likeButton.classList.remove('liked');
+            }
+        });
+        
+        downloadButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadImage(imageData);
+        });
+        
+        // Add click handler to view the image in full screen
+        resultBox.addEventListener('click', function(e) {
+            if (e.target !== likeButton && !likeButton.contains(e.target) && 
+                e.target !== downloadButton && !downloadButton.contains(e.target)) {
+                openLightbox(index);
+            }
+        });
+        
+        // Add the buttons to the overlay
+        overlay.appendChild(likeButton);
+        overlay.appendChild(downloadButton);
+        
+        // Add the image and overlay to the box
+        resultBox.appendChild(img);
+        resultBox.appendChild(overlay);
+        
+        // Add this image to the list of generated images
+        if (!generatedImages[index]) {
+            generatedImages[index] = imageData;
+        } else {
+            generatedImages.splice(index, 1, imageData);
+        }
+        
+        // Also add to history
+        generatedImagesHistory.unshift({
+            data: imageData,
+            timestamp: new Date().toISOString(),
+            prompt: promptTextarea.value
+        });
+        
+        // Keep history at a reasonable size
+        if (generatedImagesHistory.length > 100) {
+            generatedImagesHistory.pop();
+        }
+    }
+
+    // Function to generate multiple images
     async function generateImages(apiKey, prompt, imageDataArray, count = 4, boxElements = null) {
-        // Reset generated images array
+        // Update result boxes count if not provided
+        if (!boxElements) {
+            updateResultBoxesCount(count);
+            boxElements = document.querySelectorAll('.result-box');
+        }
+        
+        // Clear the generated images array
         generatedImages = [];
         
-        // Get the result boxes to use
-        const imageBoxes = boxElements || document.querySelectorAll('.result-box');
+        // Show loading in all boxes
+        boxElements.forEach((box, i) => {
+            if (i < count) {
+                box.innerHTML = `
+                    <div class="shimmer-container">
+                        <div class="shimmer-image"></div>
+                        <div class="shimmer-text"></div>
+                    </div>
+                `;
+                box.classList.add('shimmer');
+            }
+        });
         
-        // Make sure we're only operating on the boxes we have
-        count = Math.min(count, imageBoxes.length);
-        
-        // Reset result boxes and show shimmer
-        for (let i = 0; i < count; i++) {
-            imageBoxes[i].innerHTML = '';
-            imageBoxes[i].classList.remove('loaded');
-            imageBoxes[i].classList.add('shimmer');
-            
-            // Add loading indicator
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'absolute inset-0 flex items-center justify-center';
-            loadingDiv.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>';
-            imageBoxes[i].appendChild(loadingDiv);
-        }
-        
-        // Create array to track individual image completion
+        // Track completed image generations for each image
         const completedImages = new Array(count).fill(false);
         
-        // Function to process each completed image individually
-        const processImage = (result, index) => {
-            completedImages[index] = true;
-            
-            if (index < count) {
-                imageBoxes[index].classList.remove('shimmer');
-                
-                if (result.success) {
-                    // Store image data
-                    const imgIndex = generatedImages.push(result.data) - 1;
-                    
-                    // Add to history
-                    generatedImagesHistory.unshift({
-                        data: result.data,
-                        timestamp: new Date().toISOString()
-                    });
-                    
-                    // Create and append image
-                    const img = document.createElement('img');
-                    img.src = 'data:image/png;base64,' + result.data;
-                    img.dataset.index = imgIndex;
-                    
-                    // Handle image load events
-                    img.onload = function() {
-                        // Add loaded class
-                        imageBoxes[index].classList.add('loaded');
-                    };
-                    
-                    img.onerror = function() {
-                        console.error(`Error loading image ${index}`);
-                        imageBoxes[index].innerHTML = '<div class="flex items-center justify-center h-full text-red-500">Image failed to load</div>';
-                    };
-                    
-                    // Add click handler for fullscreen view
-                    img.addEventListener('click', function() {
-                        openLightbox(parseInt(this.dataset.index));
-                    });
-                    
-                    // Clear the box and append the image
-                    imageBoxes[index].innerHTML = '';
-                    imageBoxes[index].appendChild(img);
-                    
-                    // Add download button to each generated image
-                    const downloadButton = createDownloadButton(result.data);
-                    imageBoxes[index].appendChild(downloadButton);
-                    
-                    // Add like button to each generated image
-                    const likeButton = createLikeButton(result.data);
-                    imageBoxes[index].appendChild(likeButton);
-                } else {
-                    // Display error message for failed image
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'flex flex-col items-center justify-center h-full text-center p-4';
-                    
-                    const errorIcon = document.createElement('div');
-                    errorIcon.className = 'text-red-500 mb-2';
-                    errorIcon.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    `;
-                    
-                    const errorText = document.createElement('div');
-                    errorText.className = 'text-red-600 dark:text-red-400 text-sm';
-                    
-                    // Customize error message based on the error
-                    if (result.error && result.error.includes("No image data found")) {
-                        errorText.textContent = 'Gemini didn\'t return an image. Try a different prompt.';
-                    } else {
-                        errorText.textContent = 'Failed to generate image after multiple attempts';
-                    }
-                    
-                    errorDiv.appendChild(errorIcon);
-                    errorDiv.appendChild(errorText);
-                    
-                    imageBoxes[index].innerHTML = '';
-                    imageBoxes[index].appendChild(errorDiv);
-                }
-            }
-            
-            // Save history when all images are processed
-            if (completedImages.every(done => done)) {
-                saveImageHistory();
-            }
-        };
-        
-        // Generate each image independently with its own promise
+        // Generate each image in parallel
+        const promises = [];
         for (let i = 0; i < count; i++) {
-            const index = i;
-            generateSingleImage(apiKey, prompt, imageDataArray)
+            const promise = generateSingleImage(apiKey, prompt, imageDataArray)
                 .then(result => {
-                    processImage(result, index);
+                    completedImages[i] = true;
+                    if (result.success) {
+                        // Process successful image
+                        processImage(result, i);
+                    } else {
+                        // Display error message for failed image
+                        const box = boxElements[i];
+                        if (box) {
+                            box.classList.remove('shimmer');
+                            
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'flex flex-col items-center justify-center h-full text-center p-4';
+                            
+                            const errorIcon = document.createElement('div');
+                            errorIcon.className = 'text-red-500 mb-2';
+                            errorIcon.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            `;
+                            
+                            const errorText = document.createElement('div');
+                            errorText.className = 'text-red-600 dark:text-red-400 text-sm';
+                            
+                            // Customize error message based on the error
+                            if (result.error && result.error.includes("No image data found")) {
+                                errorText.textContent = 'Gemini didn\'t return an image. Try a different prompt.';
+                            } else {
+                                errorText.textContent = 'Failed to generate image after multiple attempts';
+                            }
+                            
+                            errorDiv.appendChild(errorIcon);
+                            errorDiv.appendChild(errorText);
+                            
+                            box.innerHTML = '';
+                            box.appendChild(errorDiv);
+                        }
+                    }
                 })
                 .catch(error => {
-                    processImage({
-                        success: false,
-                        error: error.message || "Error generating image"
-                    }, index);
+                    console.error(`Error generating image ${i}:`, error);
+                    completedImages[i] = true;
+                    
+                    // Display error in the box
+                    const box = boxElements[i];
+                    if (box) {
+                        box.classList.remove('shimmer');
+                        box.innerHTML = `
+                            <div class="flex items-center justify-center h-full">
+                                <div class="text-red-500">Error generating image</div>
+                            </div>
+                        `;
+                    }
                 });
+            
+            promises.push(promise);
         }
         
-        // Return a promise that resolves when all images are completed
-        return new Promise((resolve) => {
-            const checkInterval = setInterval(() => {
-                if (completedImages.every(done => done)) {
-                    clearInterval(checkInterval);
-                    resolve(completedImages);
-                }
-            }, 100);
-        });
+        // Wait for all images to be generated
+        await Promise.all(promises);
+        
+        // Enable the send button after all images are generated
+        sendButton.disabled = false;
+        sendButton.classList.remove('opacity-50');
+        sendButton.textContent = 'Generate Images';
+        
+        return completedImages.every(done => done);
     }
 
     // Send button click handler - updated for dynamic image count
@@ -782,11 +927,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const imagesToSend = imageDataArray.length > 0 ? imageDataArray : null;
         
         try {
-            // Make sure we have enough result boxes and get the updated NodeList
-            const updatedBoxes = updateResultBoxesCount(imageCount);
-            
             // Generate images - each will display as it completes
-            await generateImages(apiKey, prompt, imagesToSend, imageCount, updatedBoxes);
+            await generateImages(apiKey, prompt, imagesToSend, imageCount, resultBoxes);
         } catch (error) {
             console.error('Error:', error);
             
@@ -1230,4 +1372,39 @@ document.addEventListener('DOMContentLoaded', function() {
         a.click();
         document.body.removeChild(a);
     }
+
+    // Add event handler to ensure lightbox matches current tab context when reopening
+    document.addEventListener('click', function(e) {
+        // Check if clicked element is an image in a result box and we're in the generate tab
+        if (document.getElementById('generate-tab').getAttribute('aria-selected') === 'true') {
+            const resultBoxImg = e.target.closest('.result-box img');
+            if (resultBoxImg) {
+                const resultBox = resultBoxImg.closest('.result-box');
+                if (resultBox) {
+                    // Find the index of this result box
+                    const allResultBoxes = Array.from(document.querySelectorAll('.result-box'));
+                    const index = allResultBoxes.indexOf(resultBox);
+                    if (index !== -1 && generatedImages && generatedImages.length > index) {
+                        openLightbox(index);
+                    }
+                }
+            }
+        }
+        // Check if clicked element is an image in the history tab
+        else if (document.getElementById('history-tab').getAttribute('aria-selected') === 'true') {
+            const historyItem = e.target.closest('.history-item');
+            if (historyItem && !e.target.closest('.like-btn') && !e.target.closest('.download-btn')) {
+                const index = parseInt(historyItem.dataset.historyIndex || '0');
+                openHistoryLightbox(index);
+            }
+        }
+        // Check if clicked element is an image in the liked tab
+        else if (document.getElementById('liked-tab').getAttribute('aria-selected') === 'true') {
+            const likedItem = e.target.closest('.liked-item');
+            if (likedItem && !e.target.closest('.like-btn') && !e.target.closest('.download-btn')) {
+                const index = parseInt(likedItem.dataset.likedIndex || '0');
+                openLikedLightbox(index);
+            }
+        }
+    });
 }); 

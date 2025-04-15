@@ -18,8 +18,55 @@
         }
     </script>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Additional styles for maximizing space */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        #main-content {
+            width: 100%;
+            max-width: 100%;
+            padding: 0.5rem;
+            margin: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            #results {
+                grid-template-columns: 1fr;
+            }
+            #history-container, 
+            #liked-container {
+                grid-template-columns: 1fr 1fr;
+            }
+            .theme-toggle {
+                top: 0.5rem;
+                right: 0.5rem;
+                z-index: 40;
+            }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1023px) {
+            #results {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        /* Maximize content area */
+        .container {
+            max-width: 100% !important;
+            width: 100%;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col items-center py-8 px-4 transition-colors">
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col items-center p-0 transition-colors">
     <!-- Splash Screen - No Animations -->
     <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center">
         <div class="splash-content">
@@ -30,7 +77,7 @@
     <!-- Main Content - Initially Hidden -->
     <div id="main-content" class="w-full opacity-0 pointer-events-none">
         <!-- Theme Toggle Button -->
-        <button id="theme-toggle" class="theme-toggle p-2 rounded-full bg-white dark:bg-gray-800 shadow-md">
+        <button id="theme-toggle" class="theme-toggle fixed top-2 right-2 p-2 rounded-full bg-white dark:bg-gray-800 shadow-md z-40">
             <!-- Sun icon -->
             <svg id="light-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -41,21 +88,21 @@
             </svg>
         </button>
         
-        <div class="container max-w-7xl mx-auto">
+        <div class="container w-full px-1 mx-auto">
             
-            <!-- Two-column layout -->
-            <div class="flex flex-col lg:flex-row gap-6">
-                <!-- Left column (inputs) - narrower -->
-                <div class="lg:w-1/3 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <!-- Responsive layout -->
+            <div class="flex flex-col lg:flex-row gap-3">
+                <!-- Left column (inputs) -->
+                <div class="lg:w-1/3 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 lg:p-6 mb-3 lg:mb-0">
                     <!-- API Key Input -->
-                    <div class="mb-6">
-                        <label for="api-key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gemini API Key</label>
+                    <div class="mb-4">
+                        <label for="api-key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gemini API Key</label>
                         <div class="relative">
                             <input type="password" id="api-key" 
-                                class="w-full px-4 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 placeholder="Enter your Gemini API key">
                             <button id="toggle-api-key" class="absolute right-2 top-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
@@ -64,14 +111,14 @@
                     </div>
                     
                     <!-- Prompt Input with Drop Zone -->
-                    <div class="mb-6">
-                        <label for="prompt" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prompt</label>
+                    <div class="mb-4">
+                        <label for="prompt" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prompt</label>
                         <div id="drop-zone" class="relative rounded-md transition-all">
                             <textarea id="prompt"
-                                class="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 placeholder="Enter your prompt here... (or drop an image)" rows="3"></textarea>
                             <button id="upload-image" title="Upload an image" class="absolute right-2 top-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                     <polyline points="21 15 16 10 5 21"></polyline>
@@ -85,14 +132,14 @@
                     </div>
                     
                     <!-- Multiple Image Previews -->
-                    <div id="images-container" class="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div id="images-container" class="mb-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
                         <!-- Image previews will be added here dynamically -->
                     </div>
                     
                     <!-- Send Button -->
-                    <div class="flex justify-center mb-4">
+                    <div class="flex flex-col sm:flex-row items-center justify-center mb-3 gap-2">
                         <!-- Image Count Selector -->
-                        <div class="flex items-center mr-4">
+                        <div class="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
                             <label for="image-count" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Images:</label>
                             <div class="relative flex items-center">
                                 <button id="decrease-count" class="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
@@ -110,7 +157,7 @@
                                 </button>
                             </div>
                         </div>
-                        <button id="send-button" class="flex-1 px-6 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <button id="send-button" class="w-full px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                             Generate Images
                         </button>
                     </div>
@@ -121,23 +168,23 @@
                     </div>
                 </div>
                 
-                <!-- Right column (results) - wider -->
-                <div class="lg:w-2/3 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <!-- Right column (results) -->
+                <div class="lg:w-2/3 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
                     <!-- Tabs -->
-                    <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-                        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" role="tablist">
+                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                        <ul class="flex text-sm font-medium text-center" role="tablist">
                             <li class="mr-2" role="presentation">
-                                <button id="generate-tab" class="inline-block p-4 border-b-2 border-indigo-600 rounded-t-lg active text-indigo-600 dark:text-indigo-400" type="button" role="tab" aria-selected="true">
+                                <button id="generate-tab" class="inline-block p-3 border-b-2 border-indigo-600 rounded-t-lg active text-indigo-600 dark:text-indigo-400" type="button" role="tab" aria-selected="true">
                                     Generate
                                 </button>
                             </li>
                             <li class="mr-2" role="presentation">
-                                <button id="history-tab" class="inline-block p-4 border-b-2 border-transparent rounded-t-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" type="button" role="tab" aria-selected="false">
+                                <button id="history-tab" class="inline-block p-3 border-b-2 border-transparent rounded-t-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" type="button" role="tab" aria-selected="false">
                                     History
                                 </button>
                             </li>
                             <li role="presentation">
-                                <button id="liked-tab" class="inline-block p-4 border-b-2 border-transparent rounded-t-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" type="button" role="tab" aria-selected="false">
+                                <button id="liked-tab" class="inline-block p-3 border-b-2 border-transparent rounded-t-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" type="button" role="tab" aria-selected="false">
                                     Liked
                                     <span id="liked-count" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">0</span>
                                 </button>
@@ -149,33 +196,33 @@
                     <div id="generate-content" class="tab-content block">
                         
                         <!-- Results Container -->
-                        <div id="results" class="grid grid-cols-2 gap-4 items-4">
-                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]"></div>
-                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]"></div>
-                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]"></div>
-                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[200px]"></div>
+                        <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-3 items-4">
+                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[180px]"></div>
+                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[180px]"></div>
+                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[180px]"></div>
+                            <div class="result-box rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 min-h-[180px]"></div>
                         </div>
                     </div>
                     
                     <!-- Tab content: History -->
                     <div id="history-content" class="tab-content hidden">
-                        <div class="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-md text-yellow-800 dark:text-yellow-200 text-sm">
+                        <div class="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-md text-yellow-800 dark:text-yellow-200 text-xs sm:text-sm">
                             <strong>Note:</strong> Image history is stored in your browser and will be cleared if you reload the page or clear browser data.
                         </div>
-                        <div id="history-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div id="history-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             <!-- History will be populated here -->
-                            <div class="text-gray-500 dark:text-gray-400 col-span-full text-center py-8">No generation history yet</div>
+                            <div class="text-gray-500 dark:text-gray-400 col-span-full text-center py-6">No generation history yet</div>
                         </div>
                     </div>
                     
                     <!-- Tab content: Liked -->
                     <div id="liked-content" class="tab-content hidden">
-                        <div class="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-md text-yellow-800 dark:text-yellow-200 text-sm">
+                        <div class="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-md text-yellow-800 dark:text-yellow-200 text-xs sm:text-sm">
                             <strong>Note:</strong> Liked images are stored in your browser and will be cleared if you reload the page or clear browser data.
                         </div>
-                        <div id="liked-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div id="liked-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             <!-- Liked images will be populated here -->
-                            <div class="text-gray-500 dark:text-gray-400 col-span-full text-center py-8">No liked images yet</div>
+                            <div class="text-gray-500 dark:text-gray-400 col-span-full text-center py-6">No liked images yet</div>
                         </div>
                     </div>
                 </div>
@@ -185,24 +232,24 @@
     
     <!-- Lightbox Modal for Full Screen View -->
     <div id="lightbox" class="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center hidden">
-        <div class="relative max-w-7xl max-h-screen p-4">
+        <div id="lightbox-container" class="relative max-w-full max-h-screen p-2 sm:p-4 touch-manipulation">
             <img id="lightbox-img" class="max-w-full max-h-[90vh] object-contain" src="" alt="Full size image">
-            <button id="close-lightbox" class="absolute top-5 right-5 text-white hover:text-gray-300 focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button id="close-lightbox" class="absolute top-2 right-2 text-white hover:text-gray-300 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 sm:h-8 sm:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
             <div class="absolute bottom-5 left-0 right-0 text-center">
-                <span id="lightbox-counter" class="inline-block px-4 py-2 bg-black bg-opacity-50 text-white rounded-full"></span>
+                <span id="lightbox-counter" class="inline-block px-3 py-1 bg-black bg-opacity-50 text-white rounded-full"></span>
             </div>
             <!-- Navigation buttons -->
-            <button id="prev-image" class="absolute left-5 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button id="prev-image" class="absolute left-2 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
-            <button id="next-image" class="absolute right-5 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button id="next-image" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
             </button>
@@ -220,5 +267,39 @@
         };
     </script>
     <script src="js/main-client.js"></script>
+    <script>
+        // Add swipe functionality for mobile devices
+        document.addEventListener('DOMContentLoaded', function() {
+            const lightboxContainer = document.getElementById('lightbox-container');
+            const lightbox = document.getElementById('lightbox');
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            // Touch event handlers for swipe
+            lightboxContainer.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, false);
+            
+            lightboxContainer.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+            
+            // Detect swipe direction and change image
+            function handleSwipe() {
+                const swipeThreshold = 50; // Minimum distance for a swipe
+                
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // Swiped left - next image
+                    document.getElementById('next-image').click();
+                }
+                
+                if (touchEndX > touchStartX + swipeThreshold) {
+                    // Swiped right - previous image
+                    document.getElementById('prev-image').click();
+                }
+            }
+        });
+    </script>
 </body>
 </html> 

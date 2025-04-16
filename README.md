@@ -2,6 +2,8 @@
 
 A sleek, **static web app** that lets you create stunning images using **Google's Gemini API** — all from simple text prompts and optional reference images! 🧠🎨
 
+![Golj8yHWcAEk-cQ](https://github.com/user-attachments/assets/ec6802ba-75fa-4e5d-8863-f87a2c10352d)
+
 ---
 
 ## ✨ Features

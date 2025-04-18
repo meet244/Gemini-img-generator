@@ -51,6 +51,21 @@
                 right: 0.5rem;
                 z-index: 40;
             }
+            /* Adjust the API key and prompt container height on mobile */
+            .lg\:w-1\/3 {
+                margin-bottom: 1rem;
+            }
+            /* Make buttons more tappable on mobile */
+            button, 
+            #send-button, 
+            #decrease-count, 
+            #increase-count {
+                min-height: 44px;
+            }
+            /* Fix the tab header spacing on mobile */
+            [role="tab"] {
+                padding: 0.5rem 0.75rem;
+            }
         }
         
         @media (min-width: 769px) and (max-width: 1023px) {
@@ -142,22 +157,22 @@
                         <div class="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
                             <label for="image-count" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Images:</label>
                             <div class="relative flex items-center">
-                                <button id="decrease-count" class="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
+                                <button id="decrease-count" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
                                     </svg>
                                 </button>
                                 <input type="number" id="image-count" min="1" max="10" value="4" 
-                                    class="w-12 px-2 py-1 text-center border-t border-b border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
+                                    class="w-14 px-2 py-2 text-center border-t border-b border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none"
                                     aria-label="Number of images to generate">
-                                <button id="increase-count" class="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
+                                <button id="increase-count" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <button id="send-button" class="w-full px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <button id="send-button" class="w-full px-4 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                             Generate Images
                         </button>
                     </div>
@@ -171,8 +186,8 @@
                 <!-- Right column (results) -->
                 <div class="lg:w-2/3 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
                     <!-- Tabs -->
-                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
-                        <ul class="flex text-sm font-medium text-center" role="tablist">
+                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap">
+                        <ul class="flex flex-wrap text-sm font-medium text-center" role="tablist">
                             <li class="mr-2" role="presentation">
                                 <button id="generate-tab" class="inline-block p-3 border-b-2 border-indigo-600 rounded-t-lg active text-indigo-600 dark:text-indigo-400" type="button" role="tab" aria-selected="true">
                                     Generate
@@ -253,53 +268,22 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
             </button>
+            <!-- Download button in lightbox -->
+            <button id="lightbox-download" class="absolute bottom-5 right-4 text-white hover:text-gray-300 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+            </button>
+            <!-- Like button in lightbox -->
+            <button id="lightbox-like" class="absolute bottom-5 left-4 text-white hover:text-gray-300 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+            </button>
         </div>
     </div>
-    
-    <script>
-        // Direct browser loading (no server needed)
-        const url_for = (params) => {
-            // For static files, return the path directly
-            if (params.filename) {
-                return params.filename;
-            }
-            return '';
-        };
-    </script>
+
+    <!-- Scripts -->
     <script src="js/main-client.js"></script>
-    <script>
-        // Add swipe functionality for mobile devices
-        document.addEventListener('DOMContentLoaded', function() {
-            const lightboxContainer = document.getElementById('lightbox-container');
-            const lightbox = document.getElementById('lightbox');
-            let touchStartX = 0;
-            let touchEndX = 0;
-            
-            // Touch event handlers for swipe
-            lightboxContainer.addEventListener('touchstart', function(e) {
-                touchStartX = e.changedTouches[0].screenX;
-            }, false);
-            
-            lightboxContainer.addEventListener('touchend', function(e) {
-                touchEndX = e.changedTouches[0].screenX;
-                handleSwipe();
-            }, false);
-            
-            // Detect swipe direction and change image
-            function handleSwipe() {
-                const swipeThreshold = 50; // Minimum distance for a swipe
-                
-                if (touchEndX < touchStartX - swipeThreshold) {
-                    // Swiped left - next image
-                    document.getElementById('next-image').click();
-                }
-                
-                if (touchEndX > touchStartX + swipeThreshold) {
-                    // Swiped right - previous image
-                    document.getElementById('prev-image').click();
-                }
-            }
-        });
-    </script>
 </body>
 </html> 

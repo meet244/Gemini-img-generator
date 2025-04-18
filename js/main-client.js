@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const prevImage = document.getElementById('prev-image');
     const nextImage = document.getElementById('next-image');
     const lightboxCounter = document.getElementById('lightbox-counter');
+    const lightboxDownload = document.getElementById('lightbox-download');
+    const lightboxLike = document.getElementById('lightbox-like');
 
     let imageDataArray = []; // Array to store multiple images
     let dragCounter = 0;
@@ -452,112 +454,87 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.overflow = 'hidden';
     }
     
-    // Lightbox functionality
+    // Function to open the lightbox for current generated images
     function openLightbox(imageIndex) {
-        if (generatedImages.length === 0) return;
-        
-        // Store the active tab that was used to open the lightbox (always 'generate' in this case)
-        lightbox.setAttribute('data-source-tab', 'generate');
-        
-        // Store the specific image sources for this lightbox session
-        lightbox._imageSources = [...generatedImages];
+        if (!generatedImages || generatedImages.length === 0) return;
         
         currentImageIndex = imageIndex;
-        updateLightboxImage();
+        lightboxImg.src = 'data:image/png;base64,' + generatedImages[currentImageIndex];
         
-        // Show lightbox with animation
+        // Show the lightbox
         lightbox.classList.remove('hidden');
-        setTimeout(() => {
-            lightbox.classList.add('active');
-        }, 10);
+        setTimeout(() => lightbox.classList.add('active'), 10);
         
-        // Update counter
+        // Update the counter
         updateCounter();
         
-        // Disable scrolling on body
-        document.body.style.overflow = 'hidden';
+        // Update like button status
+        updateLightboxLikeButton();
+        
+        // Setup the download button
+        lightboxDownload.onclick = function() {
+            downloadImage(generatedImages[currentImageIndex]);
+        };
+        
+        // Setup the like button
+        lightboxLike.onclick = function() {
+            const isNowLiked = toggleLike(generatedImages[currentImageIndex]);
+            updateLightboxLikeButton();
+        };
     }
     
-    function closeLightbox() {
-        // Hide with animation
-        lightbox.classList.remove('active');
+    // Function to update the like button appearance in the lightbox
+    function updateLightboxLikeButton() {
+        if (!generatedImages || currentImageIndex >= generatedImages.length) return;
         
-        // Get the source tab before we close
-        const sourceTab = lightbox.getAttribute('data-source-tab') || 'generate';
+        const isLiked = isImageLiked(generatedImages[currentImageIndex]);
         
-        setTimeout(() => {
-            lightbox.classList.add('hidden');
-            
-            // Clear the source tab attribute and stored images when closing
-            lightbox.removeAttribute('data-source-tab');
-            delete lightbox._imageSources;
-            
-            // Reset generatedImages if we're closing from a non-generate tab
-            if (sourceTab !== 'generate') {
-                // We need to make sure the generate tab's images are restored
-                // if the user goes back to that tab
-                if (document.getElementById('generate-tab').getAttribute('aria-selected') === 'true') {
-                    // If we're already on the generate tab, make sure its images are loaded
-                    // We need to reload any generated images by checking the result boxes
-                    const resultBoxes = document.querySelectorAll('.result-box');
-                    const tempImages = [];
-                    
-                    resultBoxes.forEach(box => {
-                        const img = box.querySelector('img');
-                        if (img && img.src) {
-                            // Extract base64 data from the image src
-                            const base64Data = img.src.split(',')[1];
-                            if (base64Data) {
-                                tempImages.push(base64Data);
-                            }
-                        }
-                    });
-                    
-                    if (tempImages.length > 0) {
-                        generatedImages = tempImages;
-                    }
-                }
-            }
-        }, 300);
-        
-        // Re-enable scrolling
-        document.body.style.overflow = '';
-    }
-    
-    function updateLightboxImage() {
-        // Use the stored image sources if available, otherwise fall back to generatedImages
-        const images = lightbox._imageSources || generatedImages;
-        if (images && images.length > currentImageIndex) {
-            lightboxImg.src = 'data:image/png;base64,' + images[currentImageIndex];
+        if (isLiked) {
+            lightboxLike.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                </svg>
+            `;
+            lightboxLike.classList.add('text-red-500');
+            lightboxLike.classList.remove('text-white');
+        } else {
+            lightboxLike.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+            `;
+            lightboxLike.classList.remove('text-red-500');
+            lightboxLike.classList.add('text-white');
         }
     }
     
-    function updateCounter() {
-        // Use the stored image sources if available, otherwise fall back to generatedImages
-        const images = lightbox._imageSources || generatedImages;
-        lightboxCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
+    // Close lightbox
+    function closeLightbox() {
+        lightbox.classList.remove('active');
+        setTimeout(() => {
+            lightbox.classList.add('hidden');
+            lightboxImg.src = '';
+        }, 300);
     }
     
-    function nextLightboxImage() {
-        // Use the stored image sources if available, otherwise fall back to generatedImages
-        const images = lightbox._imageSources || generatedImages;
-        currentImageIndex = (currentImageIndex + 1) % images.length;
-        updateLightboxImage();
-        updateCounter();
-    }
-    
-    function prevLightboxImage() {
-        // Use the stored image sources if available, otherwise fall back to generatedImages
-        const images = lightbox._imageSources || generatedImages;
-        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
-        updateLightboxImage();
-        updateCounter();
-    }
-    
-    // Set up lightbox event listeners
     closeLightboxBtn.addEventListener('click', closeLightbox);
-    nextImage.addEventListener('click', nextLightboxImage);
-    prevImage.addEventListener('click', prevLightboxImage);
+    
+    // Close lightbox on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
+            closeLightbox();
+        }
+        
+        // Previous image on left arrow
+        if (e.key === 'ArrowLeft' && !lightbox.classList.contains('hidden')) {
+            prevLightboxImage();
+        }
+        
+        // Next image on right arrow
+        if (e.key === 'ArrowRight' && !lightbox.classList.contains('hidden')) {
+            nextLightboxImage();
+        }
+    });
     
     // Close lightbox when clicking outside the image
     lightbox.addEventListener('click', function(e) {
@@ -566,23 +543,63 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Keyboard navigation for lightbox
-    document.addEventListener('keydown', function(e) {
-        if (!lightbox.classList.contains('active')) return;
+    // Add touch swipe functionality for mobile devices
+    const lightboxContainer = document.getElementById('lightbox-container');
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    // Touch event handlers for swipe
+    lightboxContainer.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }, false);
+    
+    lightboxContainer.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, false);
+    
+    // Detect swipe direction and change image
+    function handleSwipe() {
+        const swipeThreshold = 50; // Minimum distance for a swipe
         
-        switch (e.key) {
-            case 'Escape':
-                closeLightbox();
-                break;
-            case 'ArrowRight':
-                nextLightboxImage();
-                break;
-            case 'ArrowLeft':
-                prevLightboxImage();
-                break;
+        if (touchEndX < touchStartX - swipeThreshold) {
+            // Swiped left - next image
+            nextLightboxImage();
         }
-    });
-
+        
+        if (touchEndX > touchStartX + swipeThreshold) {
+            // Swiped right - previous image
+            prevLightboxImage();
+        }
+    }
+    
+    // Add back the lightbox navigation functions
+    function updateLightboxImage() {
+        lightboxImg.src = 'data:image/png;base64,' + generatedImages[currentImageIndex];
+    }
+    
+    function updateCounter() {
+        lightboxCounter.textContent = `${currentImageIndex + 1} / ${generatedImages.length}`;
+    }
+    
+    function nextLightboxImage() {
+        currentImageIndex = (currentImageIndex + 1) % generatedImages.length;
+        updateLightboxImage();
+        updateCounter();
+        updateLightboxLikeButton();
+    }
+    
+    function prevLightboxImage() {
+        currentImageIndex = (currentImageIndex - 1 + generatedImages.length) % generatedImages.length;
+        updateLightboxImage();
+        updateCounter();
+        updateLightboxLikeButton();
+    }
+    
+    // Set up lightbox navigation event listeners
+    nextImage.addEventListener('click', nextLightboxImage);
+    prevImage.addEventListener('click', prevLightboxImage);
+    
     // NEW FUNCTION: Generate a single image with retry logic
     async function generateSingleImage(apiKey, prompt, imageDataArray, retryCount = 0, maxRetries = 3) {
         const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent";
@@ -928,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             // Generate images - each will display as it completes
-            await generateImages(apiKey, prompt, imagesToSend, imageCount, resultBoxes);
+            await generateImages(apiKey, prompt, imagesToSend, imageCount);
         } catch (error) {
             console.error('Error:', error);
             

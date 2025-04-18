@@ -1,54 +1,40 @@
-# 🌟 Gemini Image Generator
+# Gemini Image Generator
 
-A sleek, **static web app** that lets you create stunning images using **Google's Gemini API** — all from simple text prompts and optional reference images! 🧠🎨
+A static web application that allows users to generate images using Google's Gemini API by providing text prompts and optional reference images.
 
-![Golj8yHWcAEk-cQ](https://github.com/user-attachments/assets/ec6802ba-75fa-4e5d-8863-f87a2c10352d)
+## Features
 
----
+- Enter your Gemini API key (with show/hide toggle)
+- Dynamic text area for entering prompts
+- Upload images via file selection or clipboard paste (Ctrl+V)
+- Generate 4 images in parallel from a single prompt
+- Save history and liked images in browser storage
 
-## ✨ Features
+## How to Use
 
-- 🔐 Enter your **Gemini API key** (with show/hide toggle)
-- 📝 Smart, dynamic **text area** for writing prompts
-- 📎 Upload images via **file selection** or **paste from clipboard (Ctrl+V)**
-- 🎯 Generate **4 image variations** from a single prompt — instantly!
-- 💾 Save your **image history** and ❤️ **liked images** in your browser
+Simply open the `index.html` file in your browser. No server required!
 
----
+## Usage
 
-## 🚀 How to Use
+1. Enter your Gemini API key in the top input field
+2. Type your prompt in the text area
+3. Optionally add an image by:
+   - Pasting from clipboard (Ctrl+V)
+   - Clicking the image icon and selecting a file
+4. Click "Generate Images" to create 4 image variations
+5. Wait for the images to be generated and displayed
 
-Just open the `index.html` file in your browser — **no server setup needed**! ⚡
+## Requirements
 
----
+- A valid Gemini API key (get one from https://makersuite.google.com/app/apikey)
+- A modern web browser
 
-## 🛠️ Usage Steps
+## Notes
 
-1. 🔑 Enter your **Gemini API key** at the top
-2. ✍️ Write your **image prompt** in the text area
-3. 🖼️ (Optional) Add a reference image by:
-   - 📋 **Pasting from clipboard** (Ctrl+V)
-   - 📁 Clicking the **image icon** to select a file
-4. 🖌️ Click **"Generate Images"** to create 4 unique visuals
-5. ⏳ Wait a few moments — your images will appear below!
+- You need a valid API key for the Gemini API to use this application
+- The Gemini model used is `gemini-2.0-flash-exp-image-generation`
+- Image generation can take some time depending on server load and complexity of the prompt
 
----
+## License
 
-## 📋 Requirements
-
-- ✅ A valid **Gemini API key**  
-  👉 Get yours here: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)  
-- 🌐 A **modern web browser** (Chrome, Firefox, Edge, etc.)
-
----
-
-## 💡 Notes
-
-- This app uses the **`gemini-2.0-flash-exp-image-generation`** model
-- Image generation may take a few seconds depending on the prompt and server load
-- All data is stored **locally in your browser** – private and secure! 🔒
-
----
-
-Ready to turn words into art? 🎨✨  
-**Fire it up 🔥 and start creating! 💫**
+MIT 
